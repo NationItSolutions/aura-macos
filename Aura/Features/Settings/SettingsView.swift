@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @State private var importMessage: ImportMessage?
     @State private var confirmErase = false
+    @State private var showingOnboarding = false
 
     struct ImportMessage: Identifiable {
         let id = UUID()
@@ -30,6 +31,8 @@ struct SettingsView: View {
                 Toggle("Feedback háptico en el trackpad", isOn: $settings.hapticsEnabled)
                 Toggle("Sonidos", isOn: $settings.soundsEnabled)
             }
+
+            ExperienceSections(showingOnboarding: $showingOnboarding)
 
             BridgesSection()
 
@@ -75,6 +78,9 @@ struct SettingsView: View {
         .alert(item: $importMessage) { message in
             Alert(title: Text(message.title), message: Text(message.detail))
         }
+        .sheet(isPresented: $showingOnboarding) {
+            OnboardingView().environment(model)
+        }
         .confirmationDialog("¿Borrar todos los datos?", isPresented: $confirmErase) {
             Button("Borrar todo", role: .destructive) { model.store.replaceAll(with: StoreSnapshot()) }
         } message: {
@@ -85,22 +91,10 @@ struct SettingsView: View {
     // MARK: - Acciones
 
     private func importLegacy() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.json]
-        panel.showsHiddenFiles = true
-        panel.canChooseDirectories = false
-        panel.directoryURL = LegacyCodesImporter.defaultURL.deletingLastPathComponent()
-        panel.message = String(localized: "Elegí el archivo codigos.json del prototipo")
+        let panel = LegacyCodesImporter.openPanel()
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            let data = try Data(contentsOf: url)
-            let result = try LegacyCodesImporter.parse(data)
-            if model.settings.demoMode { model.setDemoMode(false) }
-            let summary = model.store.apply(result)
-            var detail = String(localized: "Aire: \(summary.acCodes) códigos · LED: \(summary.ledCodes) códigos.")
-            if !summary.warnings.isEmpty {
-                detail += "\n\n" + summary.warnings.joined(separator: "\n")
-            }
+            let detail = try model.importLegacyCodes(from: url)
             importMessage = ImportMessage(title: String(localized: "Importación completa"), detail: detail)
         } catch {
             importMessage = ImportMessage(title: String(localized: "No se pudo importar"), detail: error.displayMessage)

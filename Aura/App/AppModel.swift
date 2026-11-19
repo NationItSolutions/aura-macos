@@ -11,6 +11,11 @@ final class AppModel {
     let bus: CommandBus
     @ObservationIgnored let drivers: DriverRegistry
     @ObservationIgnored private(set) var scheduler: Scheduler!
+    /// Isla en el notch (nil hasta `startServices`).
+    @ObservationIgnored private(set) var island: IslandController?
+
+    /// Instancia única de la app: la usan la ventana, la barra de menús y Atajos/Siri.
+    static let shared = AppModel()
 
     private(set) var runningScene: UUID?
     /// Ficha de dispositivo abierta en la ventana principal.
@@ -45,6 +50,53 @@ final class AppModel {
     func startServices() {
         scheduler.start()
         if !store.automations.isEmpty { Scheduler.requestNotificationPermission() }
+        applyIslandSettings()
+        applyHotKeys()
+        applyActivationPolicy()
+    }
+
+    /// Prende, apaga o reubica la isla según los ajustes.
+    func applyIslandSettings() {
+        if settings.islandEnabled {
+            if island == nil { island = IslandController(model: self) }
+            island?.start()
+            island?.refresh()
+        } else {
+            island?.stop()
+        }
+    }
+
+    /// Vuelve a registrar los atajos globales.
+    func applyHotKeys() {
+        let center = HotKeyCenter.shared
+        center.unregisterAll()
+        guard settings.hotkeysEnabled else { return }
+        center.register(settings.islandShortcut) { [weak self] in
+            guard let self else { return }
+            if self.island?.isRunning != true { self.applyIslandSettings() }
+            self.island?.toggle()
+        }
+        center.register(settings.windowShortcut) {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate()
+            NSApp.windows.first { $0.canBecomeMain }?.makeKeyAndOrderFront(nil)
+        }
+        if settings.sceneShortcutsEnabled {
+            for (index, scene) in quickScenes.prefix(9).enumerated() {
+                guard let shortcut = KeyShortcut.scene(index) else { continue }
+                let sceneID = scene.id
+                center.register(shortcut) { [weak self] in
+                    guard let self, let scene = self.store.scene(sceneID) else { return }
+                    self.run(scene)
+                }
+            }
+        }
+    }
+
+    /// "Solo barra de menús": sin ícono en el Dock.
+    func applyActivationPolicy() {
+        let policy: NSApplication.ActivationPolicy = settings.menuBarEnabled && settings.menuBarOnly ? .accessory : .regular
+        if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
     }
 
     func setDemoMode(_ demo: Bool) {

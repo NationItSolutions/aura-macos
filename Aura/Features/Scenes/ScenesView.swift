@@ -168,6 +168,7 @@ struct SceneEditorSheet: View {
         .confirmationDialog("¿Eliminar esta escena?", isPresented: $confirmingDelete) {
             Button("Eliminar", role: .destructive) {
                 if let scene { model.store.removeScene(scene.id) }
+                model.applyHotKeys()
                 dismiss()
             }
         } message: {
@@ -228,6 +229,7 @@ struct SceneEditorSheet: View {
         updated.isFavorite = isFavorite
         updated.steps = steps
         model.store.upsert(updated)
+        model.applyHotKeys()
         dismiss()
     }
 }

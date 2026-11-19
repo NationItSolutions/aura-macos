@@ -1,5 +1,40 @@
 # Changelog
 
+## M7 · Distribución
+
+- AppIcon propio (todas las medidas), generado con `scripts/generate_icon.py`.
+- `scripts/build_release.sh`: Release, firma Developer ID o ad-hoc, notarización con notarytool si
+  hay perfil, DMG con alias a Aplicaciones y fondo oscuro.
+- README con instalación, configuración de cada equipo y solución de problemas.
+
+## M6 · Escenas, automatizaciones, barra de menús, Siri y atajos
+
+- Editor de escenas (pasos, demoras, orden, favoritas) y automatizaciones por hora y días.
+- Scheduler: corre mientras la app esté abierta, respeta cambios de huso, no ejecuta horarios
+  viejos al volver, notifica fallas. Temporizadores de apagado.
+- MenuBarExtra con controles rápidos y escenas; modo solo barra de menús.
+- App Intents + App Shortcuts en español (encender, apagar, temperatura, escena, botón, isla).
+- Atajos globales con Carbon (sin dependencias ni permisos) y grabador de atajos.
+- Abrir al iniciar sesión (SMAppService) y asistente inicial.
+
+## M5 · Dynamic Island
+
+- NSPanel no activante sobre el notch (geometría de `safeAreaInsets` y áreas auxiliares), píldora
+  en Macs sin notch. Estados compacto, expandido (hover 150 ms o ⌥⌘Espacio) y actividad 1,8 s.
+- Controles por tipo, pestañas de favoritos y escenas; cierre por salida del mouse, Esc o clic afuera.
+- Respeta Reducir movimiento, feedback háptico, ocultar en pantalla completa y elección de pantalla.
+
+## M4 · TV Samsung y webhooks
+
+- WebSocket wss:8002 con token en el Llavero, REST 8001 (info y apps), Wake-on-LAN, SSDP.
+- Emparejamiento guiado, olvidar emparejamiento, respaldo por IR cuando la red falla.
+- Dispositivos webhook con acciones HTTP configurables.
+
+## M3 · Aire acondicionado y habitaciones
+
+- Alta de aire con modos y rango; grabación guiada con TEMP+; swing; temporizador.
+- Habitaciones: crear, editar, eliminar y mover dispositivos arrastrando.
+
 ## M2.1 · Búsqueda de Broadlink más robusta
 
 - La búsqueda manda el "hello" al broadcast global y al de cada interfaz (algunos Mac rechazan

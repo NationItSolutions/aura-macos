@@ -31,6 +31,7 @@ enum SidebarItem: String, CaseIterable, Identifiable, Hashable {
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @State private var selection: SidebarItem? = .home
+    @State private var showingOnboarding = false
 
     var body: some View {
         NavigationSplitView {
@@ -48,6 +49,14 @@ struct RootView: View {
         .sheet(item: Bindable(model).presentedDevice) { ref in
             DeviceDetailSheet(deviceID: ref.id)
                 .environment(model)
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            OnboardingView().environment(model)
+        }
+        .onAppear {
+            guard !model.settings.onboardingCompleted else { return }
+            // Quien ya usa datos reales no necesita el asistente.
+            if model.settings.demoMode { showingOnboarding = true } else { model.settings.onboardingCompleted = true }
         }
     }
 
