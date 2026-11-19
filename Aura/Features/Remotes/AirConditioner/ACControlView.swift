@@ -160,7 +160,7 @@ struct SleepTimerCard: View {
         }
     }
 
-    static func remaining(until date: Date, now: Date) -> String {
+    nonisolated static func remaining(until date: Date, now: Date) -> String {
         let seconds = max(0, Int(date.timeIntervalSince(now)))
         return String(format: "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
     }

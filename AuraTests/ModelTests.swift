@@ -87,7 +87,7 @@ final class StoreTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: url) }
         let store = AppStore(file: StoreFile(url: url), demo: true)
         XCTAssertFalse(store.devices.isEmpty)
-        store.upsert(Device(name: "X", kind: .generic, transport: .webhook))
+        store.upsert(Device(name: "X", kind: .generic, transport: .webhook(actions: [])))
         store.flush()
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }

@@ -15,9 +15,12 @@ enum SamsungTVProtocol {
         components.host = host
         components.port = remotePort
         components.path = "/api/v2/channels/samsung.remote.control"
-        var items = [URLQueryItem(name: "name", value: Data(appName.utf8).base64EncodedString())]
-        if let token, !token.isEmpty { items.append(URLQueryItem(name: "token", value: token)) }
-        components.queryItems = items
+        // El nombre va en base64 sin escapar ("=="), como lo envían los clientes que el TV acepta.
+        var query = "name=" + Data(appName.utf8).base64EncodedString()
+        if let token, !token.isEmpty, let encoded = token.addingPercentEncoding(withAllowedCharacters: .alphanumerics) {
+            query += "&token=" + encoded
+        }
+        components.percentEncodedQuery = query
         return components.url
     }
 

@@ -153,7 +153,7 @@ struct WebhookActionsSheet: View {
         }
     }
 
-    static func parseHeaders(_ text: String) -> [String: String] {
+    nonisolated static func parseHeaders(_ text: String) -> [String: String] {
         var result: [String: String] = [:]
         for line in text.split(whereSeparator: \.isNewline) {
             guard let colon = line.firstIndex(of: ":") else { continue }

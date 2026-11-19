@@ -146,7 +146,7 @@ final class FeatureModelTests: XCTestCase {
     }
 
     func testSnapshotV1DecodesWithoutNewFields() throws {
-        let json = #"{"version":1,"devices":[],"rooms":[],"scenes":[],"bridges":[],"states":{}}"#
+        let json = #"{"version":1,"devices":[],"rooms":[],"scenes":[],"bridges":[],"states":[]}"#
         let snapshot = try JSONDecoder().decode(StoreSnapshot.self, from: Data(json.utf8))
         XCTAssertTrue(snapshot.automations.isEmpty)
         XCTAssertTrue(snapshot.timers.isEmpty)
