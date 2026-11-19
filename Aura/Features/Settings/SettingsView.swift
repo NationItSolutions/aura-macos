@@ -16,6 +16,16 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var settings = model.settings
         PageScroll(title: String(localized: "Ajustes")) {
+            if model.settings.demoMode {
+                SettingsSection(title: String(localized: "Modo demo activo"), symbol: "sparkles.tv") {
+                    SettingsRow(title: String(localized: "Estás viendo dispositivos simulados"),
+                                detail: String(localized: "Nada de lo que toques llega a tus equipos. Importá tu codigos.json (abajo) o desactivá el demo y agregá tu Broadlink en Puentes.")) {
+                        Button("Desactivar modo demo") { model.setDemoMode(false) }
+                            .buttonStyle(PrimaryButtonStyle())
+                    }
+                }
+            }
+
             SettingsSection(title: String(localized: "General"), symbol: "gearshape") {
                 Toggle("Feedback háptico en el trackpad", isOn: $settings.hapticsEnabled)
                 Toggle("Sonidos", isOn: $settings.soundsEnabled)

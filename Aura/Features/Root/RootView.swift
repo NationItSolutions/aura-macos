@@ -92,15 +92,25 @@ struct Sidebar: View {
             Spacer(minLength: 0)
 
             if model.settings.demoMode {
-                HStack(spacing: Theme.Spacing.xs) {
-                    Image(systemName: "sparkles.tv.fill")
-                    Text("Modo demo activo")
+                Button {
+                    selection = .settings
+                } label: {
+                    HStack(spacing: Theme.Spacing.xs) {
+                        Image(systemName: "sparkles.tv.fill")
+                        Text("Modo demo activo")
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .font(Typography.label)
+                    .foregroundStyle(Theme.Palette.accent)
+                    .padding(.horizontal, Theme.Spacing.sm)
+                    .padding(.vertical, Theme.Spacing.xs)
+                    .background(Capsule().fill(Theme.Palette.accent.opacity(0.12)))
+                    .contentShape(Capsule())
                 }
-                .font(Typography.label)
-                .foregroundStyle(Theme.Palette.accent)
-                .padding(.horizontal, Theme.Spacing.sm)
-                .padding(.vertical, Theme.Spacing.xs)
-                .background(Capsule().fill(Theme.Palette.accent.opacity(0.12)))
+                .buttonStyle(.plain)
+                .help(String(localized: "Los dispositivos son simulados. Abrí Ajustes para importar tus códigos o desactivar el modo demo."))
+                .accessibilityHint(Text("Abre Ajustes"))
                 .padding(Theme.Spacing.md)
             }
         }
