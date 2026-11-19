@@ -101,7 +101,7 @@ final class CommandBus {
             Log.commandBus.info("Reintentando tras: \(error.displayMessage, privacy: .public)")
             do {
                 await driver.disconnect()
-                try await withTimeout(timeout) { try await driver.connect() }
+                try await withTimeout(driver.connectTimeout) { try await driver.connect() }
                 try await withTimeout(timeout) { try await driver.send(command) }
                 return .success(())
             } catch {
@@ -112,10 +112,19 @@ final class CommandBus {
 
     /// Errores de configuración (falta un código, transporte no disponible) no se reintentan.
     nonisolated static func isRetryable(_ error: any Error) -> Bool {
-        guard let driverError = error as? DriverError else { return true }
-        switch driverError {
-        case .unreachable: return true
-        case .unsupported, .missingCode, .missingBridge, .transportUnavailable: return false
+        if let driverError = error as? DriverError {
+            switch driverError {
+            case .unreachable: return true
+            case .unsupported, .missingCode, .missingBridge, .transportUnavailable: return false
+            }
         }
+        if let broadlink = error as? BroadlinkError {
+            switch broadlink {
+            case .timeout, .deviceError, .invalidResponse, .notFound: return true
+            case .locked, .localNetworkDenied, .authenticationFailed, .unsupportedDevice,
+                 .learningTimedOut, .rfNotSupported, .invalidCode, .missingIdentity: return false
+            }
+        }
+        return true
     }
 }

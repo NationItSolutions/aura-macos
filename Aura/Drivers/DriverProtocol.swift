@@ -4,10 +4,16 @@ import Foundation
 /// todo pasa por `CommandBus`.
 protocol DeviceDriver: Sendable {
     var capabilities: Set<Capability> { get }
+    /// Tiempo máximo para conectar (algunos drivers redescubren la red).
+    var connectTimeout: Duration { get }
     var isReachable: Bool { get async }
     func connect() async throws
     func disconnect() async
     func send(_ command: Command) async throws
+}
+
+extension DeviceDriver {
+    var connectTimeout: Duration { .seconds(3) }
 }
 
 /// Errores comunes a todos los drivers.

@@ -3,6 +3,8 @@ import SwiftUI
 struct DevicesView: View {
     @Environment(AppModel.self) private var model
     @State private var filter: DeviceKind?
+    @State private var showingAdd = false
+    @State private var learningDevice: Device?
     private let columns = [GridItem(.adaptive(minimum: 250, maximum: 360), spacing: Theme.Spacing.md)]
 
     private var kinds: [DeviceKind] {
@@ -22,6 +24,8 @@ struct DevicesView: View {
                 ForEach(kinds) { kind in
                     Chip(title: kind.displayName, symbol: kind.defaultSymbol, isSelected: filter == kind) { filter = kind }
                 }
+                Spacer()
+                PrimaryButton(title: String(localized: "Agregar dispositivo"), symbol: "plus") { showingAdd = true }
             }
             if filtered.isEmpty {
                 EmptyStateView(symbol: "square.grid.2x2", title: String(localized: "Sin dispositivos"),
@@ -31,6 +35,19 @@ struct DevicesView: View {
                     ForEach(filtered) { DeviceCard(device: $0) }
                 }
             }
+        }
+        .sheet(isPresented: $showingAdd) {
+            AddDeviceSheet { device in
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(350))
+                    learningDevice = device
+                }
+            }
+            .environment(model)
+        }
+        .sheet(item: $learningDevice) { device in
+            LearningWizardSheet(model: model, deviceID: device.id, slots: device.learningSlots)
+                .environment(model)
         }
     }
 }

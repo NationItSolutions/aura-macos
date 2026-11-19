@@ -21,26 +21,7 @@ struct SettingsView: View {
                 Toggle("Sonidos", isOn: $settings.soundsEnabled)
             }
 
-            SettingsSection(title: String(localized: "Puentes"), symbol: "dot.radiowaves.left.and.right") {
-                if model.store.bridges.isEmpty {
-                    Text("No hay ningún Broadlink configurado. El descubrimiento automático llega con el driver Broadlink.")
-                        .auraText(Typography.callout, Theme.Palette.textSecondary)
-                } else {
-                    ForEach(model.store.bridges) { bridge in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(bridge.name).auraText(Typography.body)
-                                Text([bridge.host, bridge.macAddress].compactMap { $0 }.joined(separator: " · "))
-                                    .font(Typography.label.monospacedDigit())
-                                    .foregroundStyle(Theme.Palette.textSecondary)
-                            }
-                            Spacer()
-                            StatusPill(title: model.settings.demoMode ? String(localized: "Demo") : String(localized: "Sin conexión"),
-                                       status: model.settings.demoMode ? .demo : .offline)
-                        }
-                    }
-                }
-            }
+            BridgesSection()
 
             SettingsSection(title: String(localized: "Importar y exportar"), symbol: "square.and.arrow.down.on.square") {
                 SettingsRow(title: String(localized: "Importar codigos.json del prototipo"),

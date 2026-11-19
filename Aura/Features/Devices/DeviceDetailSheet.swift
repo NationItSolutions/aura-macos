@@ -6,6 +6,7 @@ struct DeviceDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     let deviceID: UUID
     @State private var showingSync = false
+    @State private var showingLearning = false
 
     var body: some View {
         Group {
@@ -21,6 +22,11 @@ struct DeviceDetailSheet: View {
                 }
                 .sheet(isPresented: $showingSync) {
                     SyncStateSheet(device: device).environment(model)
+                }
+                .sheet(isPresented: $showingLearning) {
+                    LearningWizardSheet(model: model, deviceID: device.id, slots: device.learningSlots,
+                                        allowsCustom: device.kind != .airConditioner)
+                        .environment(model)
                 }
             } else {
                 EmptyStateView(symbol: "questionmark.circle", title: String(localized: "Dispositivo no encontrado"),
@@ -52,6 +58,14 @@ struct DeviceDetailSheet: View {
                 .auraText(Typography.label, Theme.Palette.textSecondary)
             }
             Spacer()
+            if case .broadlink = device.transport {
+                Button {
+                    showingLearning = true
+                } label: {
+                    Label("Grabar códigos", systemImage: "dot.radiowaves.left.and.right")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+            }
             Button {
                 showingSync = true
             } label: {

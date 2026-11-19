@@ -29,9 +29,10 @@ final class AppModel {
 
     init(settings: AppSettings, storeFile: StoreFile?) {
         self.settings = settings
-        let drivers = DriverRegistry(demoMode: settings.demoMode)
+        let store = AppStore(file: storeFile, demo: settings.demoMode)
+        let drivers = DriverRegistry(demoMode: settings.demoMode, broadlink: BroadlinkHub(store: store))
         self.drivers = drivers
-        self.store = AppStore(file: storeFile, demo: settings.demoMode)
+        self.store = store
         self.bus = CommandBus { device in drivers.driver(for: device) }
     }
 

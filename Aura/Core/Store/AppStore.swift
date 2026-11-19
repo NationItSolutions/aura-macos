@@ -89,6 +89,16 @@ final class AppStore {
         scheduleSave()
     }
 
+    func removeBridge(_ id: UUID) {
+        snapshot.bridges.removeAll { $0.id == id }
+        for index in snapshot.devices.indices where snapshot.devices[index].transport.bridgeID == id {
+            if case .broadlink = snapshot.devices[index].transport {
+                snapshot.devices[index].transport = .broadlink(bridgeID: nil)
+            }
+        }
+        scheduleSave()
+    }
+
     func upsert(_ scene: HomeScene) {
         if let index = snapshot.scenes.firstIndex(where: { $0.id == scene.id }) {
             snapshot.scenes[index] = scene

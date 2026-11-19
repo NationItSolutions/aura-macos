@@ -77,6 +77,16 @@ struct Device: Codable, Sendable, Hashable, Identifiable {
         return known + others
     }
 
+    /// Botones del asistente para este dispositivo: sugeridos + personalizados existentes.
+    var learningSlots: [LearningSlot] {
+        var slots = LearningSlot.presets(for: kind)
+        let known = Set(slots.map(\.codeName))
+        for button in buttons where !known.contains(button.codeName) {
+            slots.append(LearningSlot(codeName: button.codeName, title: button.name, symbol: button.symbol))
+        }
+        return slots
+    }
+
     /// ¿Hay un código grabado para esta combinación de aire?
     func hasCode(for settings: ACSettings) -> Bool {
         codes[settings.codeName] != nil || codes[settings.codeNameIgnoringFan] != nil
