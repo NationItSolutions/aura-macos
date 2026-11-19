@@ -1,0 +1,13 @@
+# Xcode / XcodeGen
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+.build/
+*.dmg
+# macOS
+.DS_Store
+# Python (scripts de desarrollo)
+__pycache__/
+.venv/
