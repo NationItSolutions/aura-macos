@@ -21,7 +21,7 @@ actor FakeBroadlink: UDPTransport {
 
     init(family: BroadlinkFamily) { self.family = family }
 
-    func configure(_ change: (isolated FakeBroadlink) -> Void) { change(self) }
+    func configure(_ change: @Sendable (isolated FakeBroadlink) -> Void) { change(self) }
 
     func request(_ packet: [UInt8], host: String, port: UInt16, timeout: Duration, retryInterval: Duration) async throws -> [UInt8] {
         if unreachable { throw BroadlinkError.timeout }

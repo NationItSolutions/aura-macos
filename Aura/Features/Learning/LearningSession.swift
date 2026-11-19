@@ -96,7 +96,7 @@ final class LearningSession {
             guard let learner = self.learner else { return }
             do {
                 let code = try await learner.learn(kind, timeout: .seconds(seconds)) { phase in
-                    Task { @MainActor [weak self] in self?.phase = phase }
+                    Task { @MainActor in self.phase = phase }
                 }
                 guard !Task.isCancelled else { return }
                 self.store(code)

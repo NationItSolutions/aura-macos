@@ -156,11 +156,11 @@ actor BroadlinkClient {
                 }
             }
         } catch {
-            try? await remote(.cancelSweep)
+            _ = try? await remote(.cancelSweep)
             throw error
         }
         guard let frequency else {
-            try? await remote(.cancelSweep)
+            _ = try? await remote(.cancelSweep)
             throw BroadlinkError.learningTimedOut
         }
         onPhase(.frequencyFound(frequency))
@@ -170,7 +170,7 @@ actor BroadlinkClient {
 
     /// Cancela un barrido RF en curso (no-op en IR).
     func cancelLearning() async {
-        if family.supportsRF { try? await remote(.cancelSweep) }
+        if family.supportsRF { _ = try? await remote(.cancelSweep) }
     }
 
     private func pollLearnedData(until deadline: ContinuousClock.Instant) async throws -> Data {

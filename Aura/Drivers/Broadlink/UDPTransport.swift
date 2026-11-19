@@ -230,7 +230,7 @@ enum BroadlinkScanner {
                 guard received > 0 else { continue }
                 var hostBuffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
                 inet_ntop(AF_INET, &from.sin_addr, &hostBuffer, socklen_t(INET_ADDRSTRLEN))
-                let host = String(cString: hostBuffer)
+                let host = String(decoding: hostBuffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
                 if let device = BroadlinkProtocol.parseHello(Array(buffer[0..<received]), host: host),
                    !found.contains(where: { $0.mac == device.mac }) {
                     found.append(device)
