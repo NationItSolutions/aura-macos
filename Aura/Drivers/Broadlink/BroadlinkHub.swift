@@ -54,7 +54,7 @@ final class BroadlinkHub {
         guard var bridge = store.bridge(bridgeID), let macString = bridge.macAddress, let mac = parseMAC(macString) else {
             return false
         }
-        let found = try await scanner(.seconds(2), "255.255.255.255")
+        let found = try await scanner(.seconds(3), BroadlinkScanner.everywhere)
         guard let match = found.first(where: { $0.mac == mac }) else { return false }
         if match.isLocked { throw BroadlinkError.locked }
         if match.host != bridge.host {
@@ -66,9 +66,9 @@ final class BroadlinkHub {
         return true
     }
 
-    /// Descubre los Broadlink de la red por broadcast.
-    func discover(timeout: Duration = .seconds(3)) async throws -> [DiscoveredBroadlink] {
-        try await scanner(timeout, "255.255.255.255")
+    /// Descubre los Broadlink de la red: broadcast y, si nadie responde, barrido de la subred.
+    func discover(timeout: Duration = .seconds(5)) async throws -> [DiscoveredBroadlink] {
+        try await scanner(timeout, BroadlinkScanner.everywhere)
     }
 
     /// Identifica un Broadlink por IP directa (para redes que bloquean el broadcast).

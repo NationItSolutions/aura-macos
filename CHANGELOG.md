@@ -1,5 +1,12 @@
 # Changelog
 
+## M2.1 · Búsqueda de Broadlink más robusta
+
+- La búsqueda manda el "hello" al broadcast global y al de cada interfaz (algunos Mac rechazan
+  255.255.255.255 con "No route to host") y, si nadie responde, barre la subred por unicast
+  (solo /22 a /30). Un destino que falla ya no corta la búsqueda.
+- El selo "Modo demo activo" abre Ajustes, que muestra arriba un botón para desactivarlo.
+
 ## M2 · Driver Broadlink + aprendizaje
 
 - Protocolo local de Broadlink portado de python-broadlink 0.19.0: descubrimiento por broadcast

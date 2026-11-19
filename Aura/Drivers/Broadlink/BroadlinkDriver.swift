@@ -8,7 +8,7 @@ struct BroadlinkDriver: DeviceDriver {
 
     var capabilities: Set<Capability> { device.capabilities }
     /// Conectar puede incluir un redescubrimiento por broadcast.
-    var connectTimeout: Duration { .seconds(6) }
+    var connectTimeout: Duration { .seconds(10) }
 
     var isReachable: Bool {
         get async {
