@@ -10,6 +10,7 @@ final class AppModel {
     let store: AppStore
     let bus: CommandBus
     @ObservationIgnored let drivers: DriverRegistry
+    @ObservationIgnored private(set) var scheduler: Scheduler!
 
     private(set) var runningScene: UUID?
     /// Ficha de dispositivo abierta en la ventana principal.
@@ -34,6 +35,16 @@ final class AppModel {
         self.drivers = drivers
         self.store = store
         self.bus = CommandBus { device in drivers.driver(for: device) }
+        self.scheduler = Scheduler(store: store) { [weak self] action, _ in
+            guard let self else { return false }
+            return await self.perform(action)
+        }
+    }
+
+    /// Arranca lo que corre en segundo plano (una sola vez, al abrir la app).
+    func startServices() {
+        scheduler.start()
+        if !store.automations.isEmpty { Scheduler.requestNotificationPermission() }
     }
 
     func setDemoMode(_ demo: Bool) {
@@ -73,27 +84,77 @@ final class AppModel {
 
     /// Ejecuta una escena paso a paso respetando las demoras.
     func run(_ scene: HomeScene) {
-        guard runningScene == nil else { return }
+        Task { await runScene(scene) }
+    }
+
+    /// Ejecuta una escena y devuelve `true` si todos los pasos salieron bien.
+    @discardableResult
+    func runScene(_ scene: HomeScene) async -> Bool {
+        guard runningScene == nil else { return false }
         runningScene = scene.id
-        Task {
-            defer { runningScene = nil }
-            var failures: [String] = []
-            for step in scene.steps {
-                guard let device = store.device(step.deviceID) else { continue }
-                let ok = await send(step.command, to: device, feedback: false)
-                if !ok { failures.append(device.name) }
-                if step.delayAfter > 0 {
-                    try? await Task.sleep(for: .milliseconds(Int(step.delayAfter * 1000)))
-                }
-            }
-            if failures.isEmpty {
-                bus.publish(CommandFeedback(title: String(localized: "\(scene.name) ✓"), isError: false, symbol: scene.symbol))
-            } else {
-                let list = failures.joined(separator: ", ")
-                bus.publish(CommandFeedback(title: scene.name, message: String(localized: "Falló: \(list)"),
-                                            isError: true, symbol: "exclamationmark.triangle.fill"))
+        defer { runningScene = nil }
+        var failures: [String] = []
+        for step in scene.steps {
+            guard let device = store.device(step.deviceID) else { continue }
+            let ok = await send(step.command, to: device, feedback: false)
+            if !ok { failures.append(device.name) }
+            if step.delayAfter > 0 {
+                try? await Task.sleep(for: .milliseconds(Int(step.delayAfter * 1000)))
             }
         }
+        if failures.isEmpty {
+            bus.publish(CommandFeedback(title: String(localized: "\(scene.name) ✓"), isError: false, symbol: scene.symbol))
+            return true
+        }
+        let list = failures.joined(separator: ", ")
+        bus.publish(CommandFeedback(title: scene.name, message: String(localized: "Falló: \(list)"),
+                                    isError: true, symbol: "exclamationmark.triangle.fill"))
+        return false
+    }
+
+    /// Ejecuta la acción de una automatización o temporizador.
+    func perform(_ action: AutomationAction) async -> Bool {
+        switch action {
+        case .command(let deviceID, let command):
+            guard let device = store.device(deviceID) else { return false }
+            return await send(command, to: device)
+        case .scene(let sceneID):
+            guard let scene = store.scene(sceneID) else { return false }
+            return await runScene(scene)
+        }
+    }
+
+    /// Temporizador rápido: apagar un dispositivo en `minutes` minutos.
+    func scheduleOff(_ device: Device, inMinutes minutes: Int) {
+        let timer = SleepTimer(fireDate: Date().addingTimeInterval(Double(minutes) * 60),
+                               action: .command(deviceID: device.id, command: .power(false)),
+                               label: String(localized: "Apagar \(device.name)"))
+        store.addTimer(timer)
+        bus.publish(CommandFeedback(title: String(localized: "\(device.name) se apaga en \(minutes) min"),
+                                    isError: false, symbol: "timer"))
+    }
+
+    // MARK: - TV Samsung
+
+    func isTVPaired(_ device: Device) -> Bool {
+        if settings.demoMode { return false }
+        return KeychainStore.get(account: KeychainStore.tvTokenAccount(device.id)) != nil
+    }
+
+    /// Abre el canal con permiso de emparejar: la TV muestra "Permitir" y se guarda el token.
+    func pairTV(_ device: Device) async throws {
+        if settings.demoMode {
+            try await Task.sleep(for: .seconds(1.5))
+            return
+        }
+        guard case .samsungTizen(let host, _, _) = device.transport else { throw SamsungTVError.invalidHost }
+        let client = drivers.tvClient(for: device.id, host: host)
+        try await client.connect(allowPairing: true, timeout: .seconds(30))
+        bus.publish(CommandFeedback(title: String(localized: "\(device.name) emparejada"), isError: false, symbol: "tv"))
+    }
+
+    func forgetTVPairing(_ device: Device) {
+        drivers.forgetTV(device.id)
     }
 
     // MARK: - Resúmenes para el dashboard

@@ -79,7 +79,16 @@ struct Device: Codable, Sendable, Hashable, Identifiable {
 
     /// Botones del asistente para este dispositivo: sugeridos + personalizados existentes.
     var learningSlots: [LearningSlot] {
-        var slots = LearningSlot.presets(for: kind)
+        var slots: [LearningSlot]
+        if kind == .airConditioner {
+            // Frío siempre, más los modos que ya tengan algún código grabado.
+            let modes = ACMode.allCases.filter { mode in
+                mode == .cool || codes.keys.contains { $0 == mode.rawValue || $0.hasPrefix("\(mode.rawValue)_") }
+            }
+            slots = LearningSlot.airConditioner(modes: modes, range: temperatureRange)
+        } else {
+            slots = LearningSlot.presets(for: kind)
+        }
         let known = Set(slots.map(\.codeName))
         for button in buttons where !known.contains(button.codeName) {
             slots.append(LearningSlot(codeName: button.codeName, title: button.name, symbol: button.symbol))

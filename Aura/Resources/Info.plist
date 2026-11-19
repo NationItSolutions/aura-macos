@@ -33,6 +33,11 @@
 	<string>© 2026 Nation IT Solutions</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Aura se comunica con tus dispositivos en la red local.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

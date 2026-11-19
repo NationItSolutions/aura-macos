@@ -35,8 +35,12 @@ struct DeviceState: Codable, Sendable, Hashable {
         case .color(let color):
             ledColor = color
             isOn = true
-        case .button:
-            break
+        case .button(let name):
+            // El botón Swing del aire alterna la oscilación.
+            if name == "swing", var settings = ac {
+                settings.swing.toggle()
+                ac = settings
+            }
         }
         lastUpdated = now
     }

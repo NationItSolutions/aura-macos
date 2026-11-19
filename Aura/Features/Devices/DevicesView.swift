@@ -4,7 +4,7 @@ struct DevicesView: View {
     @Environment(AppModel.self) private var model
     @State private var filter: DeviceKind?
     @State private var showingAdd = false
-    @State private var learningDevice: Device?
+    @State private var nextStep: AddDeviceNextStep?
     private let columns = [GridItem(.adaptive(minimum: 250, maximum: 360), spacing: Theme.Spacing.md)]
 
     private var kinds: [DeviceKind] {
@@ -37,17 +37,35 @@ struct DevicesView: View {
             }
         }
         .sheet(isPresented: $showingAdd) {
-            AddDeviceSheet { device in
+            AddDeviceSheet { step in
+                // Espera a que cierre la hoja de alta antes de abrir el paso siguiente.
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(350))
-                    learningDevice = device
+                    nextStep = step
                 }
             }
             .environment(model)
         }
-        .sheet(item: $learningDevice) { device in
-            LearningWizardSheet(model: model, deviceID: device.id, slots: device.learningSlots)
-                .environment(model)
+        .sheet(item: $nextStep) { step in
+            AddDeviceNextStepView(step: step).environment(model)
+        }
+    }
+}
+
+/// Paso que sigue al alta: grabar códigos, emparejar la TV o configurar el webhook.
+struct AddDeviceNextStepView: View {
+    @Environment(AppModel.self) private var model
+    let step: AddDeviceNextStep
+
+    var body: some View {
+        switch step {
+        case .learn(let device, let slots):
+            LearningWizardSheet(model: model, deviceID: device.id, slots: slots,
+                                allowsCustom: device.kind != .airConditioner)
+        case .pairTV(let device):
+            TVPairingSheet(deviceID: device.id)
+        case .editWebhook(let device):
+            WebhookActionsSheet(deviceID: device.id)
         }
     }
 }

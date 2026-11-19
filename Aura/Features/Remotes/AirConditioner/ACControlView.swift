@@ -77,13 +77,16 @@ struct ACControlView: View {
                         Text("Swing").auraText(Typography.label, Theme.Palette.textSecondary)
                         Chip(title: draft.swing ? String(localized: "Activado") : String(localized: "Desactivado"),
                              symbol: "arrow.up.and.down", isSelected: draft.swing) {
-                            draft.swing.toggle()
-                            apply()
+                            toggleSwing()
                         }
+                        .disabled(device.codes["swing"] == nil)
+                        .help(device.codes["swing"] == nil ? Text("Grabá el botón Swing desde «Grabar códigos».") : Text("Alternar oscilación"))
                     }
                 }
                 .frame(maxWidth: 180)
             }
+
+            SleepTimerCard(device: device)
 
             if let missing = missingMessage {
                 Label(missing, systemImage: "exclamationmark.circle")
@@ -116,9 +119,49 @@ struct ACControlView: View {
         apply()
     }
 
+    private func toggleSwing() {
+        guard device.codes["swing"] != nil else { return }
+        draft.swing.toggle()
+        model.send(.button("swing"), toDeviceID: device.id)
+    }
+
     private func apply() {
         let settings = draft
         guard device.hasCode(for: settings) else { return }
         model.send(.setAC(settings), toDeviceID: device.id)
+    }
+}
+
+/// Temporizador de apagado: 30 / 60 / 90 / 120 min, con cuenta regresiva y cancelar.
+struct SleepTimerCard: View {
+    @Environment(AppModel.self) private var model
+    let device: Device
+
+    var body: some View {
+        Card {
+            HStack(spacing: Theme.Spacing.sm) {
+                Image(systemName: "timer").foregroundStyle(Theme.Palette.accent)
+                if let timer = model.store.timers(for: device.id).first {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text("Se apaga en \(Self.remaining(until: timer.fireDate, now: context.date))")
+                            .auraText(Typography.body)
+                            .monospacedDigit()
+                    }
+                    Spacer()
+                    Button("Cancelar") { model.store.removeTimer(timer.id) }.buttonStyle(SecondaryButtonStyle())
+                } else {
+                    Text("Apagar en").auraText(Typography.label, Theme.Palette.textSecondary)
+                    ForEach([30, 60, 90, 120], id: \.self) { minutes in
+                        Chip(title: "\(minutes) min", isSelected: false) { model.scheduleOff(device, inMinutes: minutes) }
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    static func remaining(until date: Date, now: Date) -> String {
+        let seconds = max(0, Int(date.timeIntervalSince(now)))
+        return String(format: "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
     }
 }

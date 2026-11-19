@@ -42,6 +42,10 @@ final class AppStore {
     var rooms: [Room] { snapshot.rooms.sorted { ($0.sortOrder, $0.name) < ($1.sortOrder, $1.name) } }
     var scenes: [HomeScene] { snapshot.scenes }
     var bridges: [Bridge] { snapshot.bridges }
+    var automations: [Automation] { snapshot.automations.sorted { ($0.hour, $0.minute) < ($1.hour, $1.minute) } }
+    var timers: [SleepTimer] { snapshot.timers.sorted { $0.fireDate < $1.fireDate } }
+    func scene(_ id: UUID) -> HomeScene? { snapshot.scenes.first { $0.id == id } }
+    func timers(for deviceID: UUID) -> [SleepTimer] { timers.filter { $0.deviceID == deviceID } }
 
     func device(_ id: UUID) -> Device? { snapshot.devices.first { $0.id == id } }
     func room(_ id: UUID?) -> Room? { id.flatMap { id in snapshot.rooms.first { $0.id == id } } }
@@ -68,6 +72,11 @@ final class AppStore {
         for index in snapshot.scenes.indices {
             snapshot.scenes[index].steps.removeAll { $0.deviceID == id }
         }
+        snapshot.timers.removeAll { $0.deviceID == id }
+        snapshot.automations.removeAll {
+            if case .command(let deviceID, _) = $0.action { return deviceID == id }
+            return false
+        }
         scheduleSave()
     }
 
@@ -75,8 +84,26 @@ final class AppStore {
         if let index = snapshot.rooms.firstIndex(where: { $0.id == room.id }) {
             snapshot.rooms[index] = room
         } else {
+            var room = room
+            room.sortOrder = (snapshot.rooms.map(\.sortOrder).max() ?? -1) + 1
             snapshot.rooms.append(room)
         }
+        scheduleSave()
+    }
+
+    /// Elimina la habitación. Sus dispositivos quedan "Sin habitación".
+    func removeRoom(_ id: UUID) {
+        snapshot.rooms.removeAll { $0.id == id }
+        for index in snapshot.devices.indices where snapshot.devices[index].roomID == id {
+            snapshot.devices[index].roomID = nil
+        }
+        scheduleSave()
+    }
+
+    /// Mueve un dispositivo a otra habitación (o a ninguna).
+    func move(deviceID: UUID, to roomID: UUID?) {
+        guard let index = snapshot.devices.firstIndex(where: { $0.id == deviceID }) else { return }
+        snapshot.devices[index].roomID = roomID
         scheduleSave()
     }
 
@@ -112,6 +139,45 @@ final class AppStore {
         var state = snapshot.states[id] ?? DeviceState()
         change(&state)
         snapshot.states[id] = state
+        scheduleSave()
+    }
+
+    func removeScene(_ id: UUID) {
+        snapshot.scenes.removeAll { $0.id == id }
+        snapshot.automations.removeAll { $0.action == .scene(id) }
+        scheduleSave()
+    }
+
+    func moveScenes(from source: IndexSet, to destination: Int) {
+        snapshot.scenes.move(fromOffsets: source, toOffset: destination)
+        scheduleSave()
+    }
+
+    func upsert(_ automation: Automation) {
+        if let index = snapshot.automations.firstIndex(where: { $0.id == automation.id }) {
+            snapshot.automations[index] = automation
+        } else {
+            snapshot.automations.append(automation)
+        }
+        scheduleSave()
+    }
+
+    func removeAutomation(_ id: UUID) {
+        snapshot.automations.removeAll { $0.id == id }
+        scheduleSave()
+    }
+
+    func addTimer(_ timer: SleepTimer) {
+        // Un solo temporizador por dispositivo: el nuevo reemplaza al anterior.
+        if let deviceID = timer.deviceID {
+            snapshot.timers.removeAll { $0.deviceID == deviceID }
+        }
+        snapshot.timers.append(timer)
+        scheduleSave()
+    }
+
+    func removeTimer(_ id: UUID) {
+        snapshot.timers.removeAll { $0.id == id }
         scheduleSave()
     }
 

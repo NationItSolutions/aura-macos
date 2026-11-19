@@ -7,6 +7,8 @@ struct DeviceDetailSheet: View {
     let deviceID: UUID
     @State private var showingSync = false
     @State private var showingLearning = false
+    @State private var showingPairing = false
+    @State private var confirmingForget = false
 
     var body: some View {
         Group {
@@ -22,6 +24,14 @@ struct DeviceDetailSheet: View {
                 }
                 .sheet(isPresented: $showingSync) {
                     SyncStateSheet(device: device).environment(model)
+                }
+                .sheet(isPresented: $showingPairing) {
+                    TVPairingSheet(deviceID: device.id).environment(model)
+                }
+                .confirmationDialog("¿Olvidar el emparejamiento con esta TV?", isPresented: $confirmingForget) {
+                    Button("Olvidar", role: .destructive) { model.forgetTVPairing(device) }
+                } message: {
+                    Text("La próxima vez la TV va a volver a pedir permiso.")
                 }
                 .sheet(isPresented: $showingLearning) {
                     LearningWizardSheet(model: model, deviceID: device.id, slots: device.learningSlots,
@@ -65,6 +75,16 @@ struct DeviceDetailSheet: View {
                     Label("Grabar códigos", systemImage: "dot.radiowaves.left.and.right")
                 }
                 .buttonStyle(SecondaryButtonStyle())
+            }
+            if case .samsungTizen = device.transport {
+                Menu {
+                    Button("Emparejar de nuevo") { showingPairing = true }
+                    Button("Olvidar emparejamiento", role: .destructive) { confirmingForget = true }
+                } label: {
+                    Label(model.isTVPaired(device) ? "Emparejada" : "Emparejar", systemImage: "link")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
             Button {
                 showingSync = true

@@ -16,6 +16,8 @@ enum IRCodeResolver {
             return step == .up ? "brightness_up" : "brightness_down"
         case (.light, .color(let name)):
             return name
+        case (.television, .power):
+            return TVKey.power.rawValue.lowercased()
         case (.television, .tvKey(let key)):
             return key.rawValue.lowercased()
         case (_, .power(let on)):

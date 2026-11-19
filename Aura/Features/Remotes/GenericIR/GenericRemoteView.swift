@@ -10,13 +10,24 @@ struct GenericRemoteView: View {
     @State private var editingButton: CustomButton?
     @State private var learningSlot: LearningSlot?
     @State private var showingNewButton = false
+    @State private var showingWebhook = false
+
+    private var webhookActions: [WebhookAction]? {
+        if case .webhook(let actions) = device.transport { return actions }
+        return nil
+    }
+
+    private var hasPower: Bool {
+        if let webhookActions { return webhookActions.contains { $0.role != .button } }
+        return device.codes["power_on"] != nil || device.codes["power_off"] != nil
+    }
 
     private var state: DeviceState { model.store.state(for: device.id) }
     private let columns = [GridItem(.adaptive(minimum: 110), spacing: Theme.Spacing.xs)]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
-            if device.codes["power_on"] != nil || device.codes["power_off"] != nil {
+            if hasPower {
                 HStack(spacing: Theme.Spacing.md) {
                     IconButton(symbol: "power", label: String(localized: "Encender o apagar"), size: 56,
                                isActive: state.isOn, isLoading: model.bus.isBusy(device.id)) {
@@ -31,8 +42,13 @@ struct GenericRemoteView: View {
                     HStack {
                         Text("Botones").auraText(Typography.label, Theme.Palette.textSecondary)
                         Spacer()
-                        Button { showingNewButton = true } label: { Label("Agregar", systemImage: "plus") }
-                            .buttonStyle(SecondaryButtonStyle())
+                        if webhookActions != nil {
+                            Button { showingWebhook = true } label: { Label("Configurar acciones", systemImage: "slider.horizontal.3") }
+                                .buttonStyle(SecondaryButtonStyle())
+                        } else {
+                            Button { showingNewButton = true } label: { Label("Agregar", systemImage: "plus") }
+                                .buttonStyle(SecondaryButtonStyle())
+                        }
                         Button { withAnimation(Theme.Motion.spring) { editing.toggle() } } label: {
                             Label(editing ? "Listo" : "Editar", systemImage: editing ? "checkmark" : "pencil")
                         }
@@ -40,7 +56,9 @@ struct GenericRemoteView: View {
                         .disabled(device.buttons.isEmpty)
                     }
                     if device.buttons.isEmpty {
-                        Text("Este control todavía no tiene botones. Tocá «Agregar» para grabar el primero.")
+                        Text(webhookActions != nil
+                             ? String(localized: "Agregá acciones de tipo «Botón» en «Configurar acciones».")
+                             : String(localized: "Este control todavía no tiene botones. Tocá «Agregar» para grabar el primero."))
                             .auraText(Typography.callout, Theme.Palette.textTertiary)
                     } else {
                         LazyVGrid(columns: columns, spacing: Theme.Spacing.xs) {
@@ -55,6 +73,9 @@ struct GenericRemoteView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showingWebhook) {
+            WebhookActionsSheet(deviceID: device.id).environment(model)
         }
         .sheet(item: $editingButton) { button in
             EditButtonSheet(device: device, button: button) { learningSlot = $0 }
@@ -78,9 +99,9 @@ struct GenericRemoteView: View {
 
     @ViewBuilder
     private func buttonTile(_ button: CustomButton) -> some View {
-        let recorded = device.codes[button.codeName] != nil
+        let recorded = webhookActions != nil || device.codes[button.codeName] != nil
         TileButton(symbol: button.symbol, title: button.name, tint: button.tint.color) {
-            if editing {
+            if editing, webhookActions == nil {
                 editingButton = button
             } else {
                 model.send(.button(button.codeName), toDeviceID: device.id)

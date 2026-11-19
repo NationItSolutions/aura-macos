@@ -12,7 +12,10 @@ struct AuraApp: App {
                 .environment(model)
                 .frame(minWidth: 960, minHeight: 640)
                 .preferredColorScheme(.dark)
-                .onAppear { appDelegate.model = model }
+                .onAppear {
+                    appDelegate.model = model
+                    model.startServices()
+                }
         }
         .defaultSize(width: 1200, height: 780)
         .windowStyle(.hiddenTitleBar)
