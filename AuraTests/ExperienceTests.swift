@@ -35,8 +35,10 @@ final class ExperienceTests: XCTestCase {
                         codes: ["cool_20": "x", "cool_24": "x"], temperatureRange: 17...26)
         model.store.upsert(ac)
         model.syncState(ac) { $0.ac = ACSettings(mode: .cool, temperature: 20) }
-        XCTAssertTrue(await model.setTemperature(ac, to: 24))
+        let raised = await model.setTemperature(ac, to: 24)
+        XCTAssertTrue(raised)
         XCTAssertEqual(model.store.state(for: ac.id).ac?.temperature, 24)
-        XCTAssertFalse(await model.setTemperature(ac, to: 31))
+        let outOfRange = await model.setTemperature(ac, to: 31)
+        XCTAssertFalse(outOfRange)
     }
 }

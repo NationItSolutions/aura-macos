@@ -175,11 +175,14 @@ final class IslandController {
         }) { monitors.append(click) }
         // Esc con la isla enfocada.
         if let keys = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
-            MainActor.assumeIsolated {
-                guard let self, event.window === self.panel, event.keyCode == 53 else { return event }
+            let isEsc = event.keyCode == 53
+            let windowNumber = event.windowNumber
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                guard let self, isEsc, windowNumber == self.panel?.windowNumber else { return false }
                 self.collapse()
-                return nil
+                return true
             }
+            return handled ? nil : event
         }) { monitors.append(keys) }
 
         observers.append(NotificationCenter.default.addObserver(
